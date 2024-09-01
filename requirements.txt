@@ -1,5 +1,5 @@
 pip>=21.0
-pip install --no-binary :all: numpy
+numpy --no-binary :all:
 pandas==1.5.3
 setuptools>=58.0.0
 Flask==2.0.3
