@@ -1,5 +1,5 @@
 --no-binary :all:
-pip=24.2
+pip==24.2
 numpy==1.25.2
 pandas==1.5.3
 setuptools==59.5.0
