@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import pandas as pd
-from werkzeug.urls import quote, unquote
+from werkzeug.utils import url_quote
 from flask_cors import CORS
 
 app = Flask(__name__)
