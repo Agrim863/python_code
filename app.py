@@ -19,7 +19,7 @@ def calculate_health_score(ingredient_list, data_frame):
     else:
         normalized_score = 10  # Base positive score if no ingredients are provided
 
-    final_score = normalized_score + 10  # Add base value to ensure positive scores
+    final_score = normalized_score + 0  # Add base value to ensure positive scores
     
     return max(0, min(100, final_score))  # Ensure score is within 0-100 range
 
