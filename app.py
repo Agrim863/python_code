@@ -1,6 +1,8 @@
 import streamlit as st
-import pandas as pd
 from streamlit.components.v1 import html
+import pandas as pd
+
+st.title("Health Scorer with QR Code Scanner")
 
 # Load ingredient data
 ingredient_data = pd.read_csv('Book1.csv')
@@ -9,17 +11,17 @@ def calculate_health_score(ingredient_list, data_frame):
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
     total_score = 0
     for ingredient in ingredient_list:
-        score = ingredient_scores.get(ingredient, 1)
+        score = ingredient_scores.get(ingredient, 1)  # Default to 1 if ingredient is not found
         total_score += score
     
     if len(ingredient_list) > 0:
-        normalized_score = (total_score / len(ingredient_list)) * 20
+        normalized_score = (total_score / len(ingredient_list)) * 20  # Adjusted for a 0-100 scale
     else:
-        normalized_score = 0
+        normalized_score = 0  # Default score if no ingredients are provided
 
-    return max(0, min(100, normalized_score))
+    return max(0, min(100, normalized_score))  # Ensure score is within 0-100 range
 
-# HTML for QR code scanner
+# Embed the QR code scanner HTML
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -34,32 +36,24 @@ html_code = '''
   <div id="qr-reader" style="width: 100%; height: 400px;"></div>
   <div id="qr-reader-results">Scan a QR code to see the result here.</div>
   <script>
+    // Function to handle success
     function onScanSuccess(qrCodeMessage) {
       console.log(`QR Code Data: ${qrCodeMessage}`);
       document.getElementById('qr-reader-results').innerText = `QR Code Data: ${qrCodeMessage}`;
-
-      // Send the QR code data back to Streamlit
-      fetch('/process_data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: qrCodeMessage })
-      })
-      .then(response => response.json())
-      .then(data => {
-        document.getElementById('qr-reader-results').innerText += `\nHealth Score: ${data.health_score}`;
-      })
-      .catch(error => console.error('Error:', error));
     }
 
+    // Function to handle errors
     function onScanError(errorMessage) {
       console.warn(`QR Code Scan Error: ${errorMessage}`);
     }
 
+    // Start QR code scanner
     const html5QrCode = new Html5Qrcode("qr-reader");
 
+    // Automatically start scanning as soon as the page loads
     html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
+      { facingMode: "environment" }, // Use the rear camera by default
+      { fps: 10, qrbox: 250 }, // Set frames per second and QR code box size
       onScanSuccess,
       onScanError
     ).catch(err => {
@@ -70,10 +64,10 @@ html_code = '''
 </html>
 '''
 
-# Display the QR code scanner
-html(html_code, height=600, scrolling = True)
+# Display the QR code scanner within the Streamlit app
+html(html_code, height=600, scrolling=True)
 
-# Manual input for QR code data
+# Manual input for QR code data as a backup
 qr_code_data = st.text_input("Enter QR code data (comma-separated ingredients):")
 
 if qr_code_data:
