@@ -32,7 +32,7 @@ def fetch_ingredients_from_barcode(barcode):
             return ingredients.split(', ')  # Return a list of ingredients
     return []
 
-# Embed the barcode scanner HTML using jsQR with improved user experience
+# Embed the barcode scanner HTML using jsQR with optimizations
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -60,7 +60,8 @@ html_code = '''
     const canvas = document.getElementById('canvas');
     const resultElement = document.getElementById('result');
     const ctx = canvas.getContext('2d');
-    const scanningInterval = 100;  // Scan every 100ms
+    let lastCode = '';
+    const scanningInterval = 50;  // Scan every 50ms for quicker response
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
       video.srcObject = stream;
@@ -80,10 +81,10 @@ html_code = '''
         const code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: "dontInvert",
         });
-        if (code) {
+        if (code && code.data !== lastCode) {
+          lastCode = code.data;
           resultElement.innerText = `Barcode Data: ${code.data}`;
           window.parent.postMessage({ type: 'barcode-data', data: code.data }, '*');
-          return;  // Stop scanning once barcode is detected
         }
       }
       setTimeout(() => requestAnimationFrame(tick), scanningInterval);
@@ -91,7 +92,8 @@ html_code = '''
 
     window.addEventListener('message', function(event) {
       if (event.data.type === 'barcode-data') {
-        window.location.href = `?barcode_data=${event.data.data}`;
+        const barcodeData = event.data.data;
+        window.location.search = `?barcode_data=${encodeURIComponent(barcodeData)}`;
       }
     });
   </script>
@@ -102,12 +104,18 @@ html_code = '''
 # Display the barcode scanner within the Streamlit app
 components.html(html_code, height=500, scrolling=True)
 
-# Retrieve barcode data from URL parameters
-query_params = urllib.parse.parse_qs(urllib.parse.urlsplit(st.experimental_get_query_params().get('barcode_data', '')).query)
-barcode_data = query_params.get('barcode_data', [''])[0]
+# Text input for manual barcode entry
+barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
 
-if barcode_data:
-    ingredients_list = fetch_ingredients_from_barcode(barcode_data)
+# Check URL parameters for barcode data
+query_params = urllib.parse.parse_qs(urllib.parse.urlsplit(st.experimental_get_query_params().get('barcode_data', '')).query)
+barcode_data_from_scan = query_params.get('barcode_data', [''])[0]
+
+# Use scanned barcode data if available, otherwise use manually entered data
+final_barcode_data = barcode_data_from_scan or barcode_data
+
+if final_barcode_data:
+    ingredients_list = fetch_ingredients_from_barcode(final_barcode_data)
     if ingredients_list:
         health_score = calculate_health_score(ingredients_list, ingredient_data)
         st.write(f"Health Score: {health_score}")
