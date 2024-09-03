@@ -2,7 +2,10 @@ from flask import Flask, request, jsonify
 import pandas as pd
 from werkzeug.utils import url_quote
 from flask_cors import CORS
+import streamlit as st
 
+st.title("Health Scorer")
+st.write("Capstone project")
 app = Flask(__name__)
 CORS(app)  # Enable CORS
 
