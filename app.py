@@ -87,7 +87,7 @@ html_code = '''
 '''
 
 # Display the barcode scanner within the Streamlit app
-st.components.v1.html(html_code, height=600, scrolling=True)
+st.components.v1.html(html_code, height=200, scrolling=True)
 
 # Handle barcode data received from the scanner or manually entered
 barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
