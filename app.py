@@ -71,7 +71,7 @@ html_code = '''
 '''
 
 # Display the QR code scanner
-html(html_code, height=600)
+html(html_code, height=600, scrolling = True)
 
 # Manual input for QR code data
 qr_code_data = st.text_input("Enter QR code data (comma-separated ingredients):")
