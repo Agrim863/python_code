@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-st.title("Health Scorer with QR Code Scanner")
+st.title("Health Scorer with Barcode Scanner")
 
 # Load ingredient data
 ingredient_data = pd.read_csv('Book1.csv')
@@ -23,65 +23,78 @@ def calculate_health_score(ingredient_list, data_frame):
     
     return max(0, min(100, final_score))  # Ensure score is within 0-100 range
 
-# Embed the QR code scanner HTML
+# Embed the barcode scanner HTML with blue line animation
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QR Code Scanner with jsQR</title>
-  <script src="https://unpkg.com/jsqr/dist/jsQR.min.js"></script>
+  <title>Barcode Scanner with QuaggaJS</title>
+  <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+  <style>
+    #scanner-container {
+      position: relative;
+    }
+    #scanner {
+      width: 100%;
+      height: 400px;
+      border: 1px solid black;
+    }
+    .scanner-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(0, 0, 255, 0.7);
+      animation: move 1s linear infinite;
+    }
+    @keyframes move {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+  </style>
 </head>
 <body>
-  <h1>QR Code Scanner with jsQR</h1>
-  <video id="camera" width="100%" height="400px" style="border: 1px solid black;"></video>
-  <div id="result">Scan a QR code to see the result here.</div>
+  <h1>Barcode Scanner with QuaggaJS</h1>
+  <div id="scanner-container">
+    <video id="scanner"></video>
+    <div class="scanner-line"></div>
+  </div>
+  <div id="result">Scan a barcode to see the result here.</div>
   <script>
-    const video = document.getElementById('camera');
-    const result = document.getElementById('result');
-
-    // Access the camera
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => {
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true); // Required for iOS
-        video.play();
-        scanQRCode();
-      })
-      .catch(err => {
-        console.error('Error accessing camera: ', err);
-      });
-
-    function scanQRCode() {
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-
-      function tick() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          canvas.height = video.videoHeight;
-          canvas.width = video.videoWidth;
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, canvas.width, canvas.height, {
-            inversionAttempts: "dontInvert",
-          });
-          if (code) {
-            result.innerText = `QR Code Data: ${code.data}`;
-            window.parent.postMessage({ type: 'qr-code-data', data: code.data }, '*');
-          }
+    Quagga.init({
+      inputStream: {
+        type: "LiveStream",
+        target: document.querySelector('#scanner'),
+        constraints: {
+          facingMode: "environment",
+          width: { ideal: 640 },
+          height: { ideal: 480 }
         }
-        requestAnimationFrame(tick);
+      },
+      decoder: {
+        readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"]
       }
+    }, function(err) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      Quagga.start();
+    });
 
-      tick();
-    }
+    Quagga.onDetected(function(data) {
+      const barcode = data.codeResult.code;
+      document.getElementById('result').innerText = `Barcode Data: ${barcode}`;
+      window.parent.postMessage({ type: 'barcode-data', data: barcode }, '*');
+    });
 
-    // Listen for messages from the parent window
     window.addEventListener('message', function(event) {
-      if (event.data.type === 'qr-code-data') {
-        result.innerText = `QR Code Data: ${event.data.data}`;
-        window.parent.postMessage({ type: 'qr-code-data', data: event.data.data }, '*');
+      if (event.data.type === 'barcode-data') {
+        document.getElementById('result').innerText = `Barcode Data: ${event.data.data}`;
+        window.parent.postMessage({ type: 'barcode-data', data: event.data.data }, '*');
       }
     });
   </script>
@@ -89,24 +102,24 @@ html_code = '''
 </html>
 '''
 
-# Display the QR code scanner within the Streamlit app
+# Display the barcode scanner within the Streamlit app
 st.components.v1.html(html_code, height=600, scrolling=True)
 
-# Handle QR code data received from the scanner
-def get_qr_code_data():
-    # The QR code data is expected to be sent from the HTML script via postMessage
+# Handle barcode data received from the scanner
+def get_barcode_data():
+    # The barcode data is expected to be sent from the HTML script via postMessage
     # This function would handle retrieving and processing that data
     # For simplicity, we're using a placeholder here
-    return st.session_state.get('qr_code_data', '')
+    return st.session_state.get('barcode_data', '')
 
-# Manual input for QR code data as a backup
-qr_code_data = st.text_input("Enter QR code data (comma-separated ingredients):", value=get_qr_code_data())
+# Manual input for barcode data as a backup
+barcode_data = st.text_input("Enter barcode data (comma-separated ingredients):", value=get_barcode_data())
 
-if qr_code_data:
-    ingredient_list = qr_code_data.split(',')
+if barcode_data:
+    ingredient_list = barcode_data.split(',')
     health_score = calculate_health_score(ingredient_list, ingredient_data)
     st.write(f"Health Score: {health_score}")
 
-# Update session state with QR code data if available
-if 'qr_code_data' not in st.session_state:
-    st.session_state['qr_code_data'] = qr_code_data
+# Update session state with barcode data if available
+if 'barcode_data' not in st.session_state:
+    st.session_state['barcode_data'] = barcode_data
