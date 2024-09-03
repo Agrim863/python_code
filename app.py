@@ -23,7 +23,7 @@ def calculate_health_score(ingredient_list, data_frame):
     
     return max(0, min(100, final_score))  # Ensure score is within 0-100 range
 
-# Embed the barcode scanner HTML with slower blue line animation
+# Embed the barcode scanner HTML with adjusted blue line animation
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -48,13 +48,12 @@ html_code = '''
       width: 100%;
       height: 4px;
       background: rgba(0, 0, 255, 0.7);
-      animation: move 4s linear infinite; /* Increased duration to slow down the line */
-      pointer-events: none; /* Make sure the line does not interfere with interactions */
+      animation: move 4s linear infinite;
     }
     @keyframes move {
-      0% { transform: translateY(0); }
-      50% { transform: translateY(100%); }
-      100% { transform: translateY(0); }
+      0% { top: 0; }
+      50% { top: 100%; }
+      100% { top: 0; }
     }
   </style>
 </head>
