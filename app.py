@@ -30,7 +30,7 @@ def fetch_ingredients_from_barcode(barcode):
             return ingredients.split(', ')  # Return a list of ingredients
     return []
 
-# Embed the barcode scanner HTML using jsQR without any extra animation
+# Embed the barcode scanner HTML using jsQR with improved user experience
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -40,29 +40,33 @@ html_code = '''
   <title>jsQR Barcode Scanner</title>
   <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <style>
-    #video {
-      width: 100%;
-      height: 400px;
-      border: 1px solid black;
-    }
+    body { font-family: Arial, sans-serif; }
+    #video { width: 100%; height: 60vh; border: 1px solid black; }
+    #canvas { display: none; }
+    #instructions { margin: 10px 0; font-size: 16px; color: #333; }
+    #result { margin-top: 10px; font-size: 18px; color: green; }
   </style>
 </head>
 <body>
+  <div id="instructions">Point your camera at a barcode. Ensure it's well-lit and within the frame.</div>
   <video id="video" autoplay></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <div id="result">Scan a barcode to see the result here.</div>
+  <canvas id="canvas"></canvas>
+  <div id="result">Waiting for barcode...</div>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const resultElement = document.getElementById('result');
     const ctx = canvas.getContext('2d');
+    const scanningInterval = 100;  // Scan every 100ms
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
       video.srcObject = stream;
       video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
       video.play();
       requestAnimationFrame(tick);
+    }).catch(err => {
+      resultElement.innerText = 'Error accessing camera: ' + err.message;
     });
 
     function tick() {
@@ -79,7 +83,7 @@ html_code = '''
           window.parent.postMessage({ type: 'barcode-data', data: code.data }, '*');
         }
       }
-      requestAnimationFrame(tick);
+      setTimeout(() => requestAnimationFrame(tick), scanningInterval);
     }
   </script>
 </body>
@@ -87,7 +91,7 @@ html_code = '''
 '''
 
 # Display the barcode scanner within the Streamlit app
-st.components.v1.html(html_code, height=200, scrolling=True)
+st.components.v1.html(html_code, height=500, scrolling=True)
 
 # Handle barcode data received from the scanner or manually entered
 barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
