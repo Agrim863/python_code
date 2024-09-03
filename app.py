@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import requests
+import streamlit.components.v1 as components
+import urllib.parse
 
 st.title("Health Scorer with Barcode Scanner")
 
@@ -81,20 +83,28 @@ html_code = '''
         if (code) {
           resultElement.innerText = `Barcode Data: ${code.data}`;
           window.parent.postMessage({ type: 'barcode-data', data: code.data }, '*');
+          return;  // Stop scanning once barcode is detected
         }
       }
       setTimeout(() => requestAnimationFrame(tick), scanningInterval);
     }
+
+    window.addEventListener('message', function(event) {
+      if (event.data.type === 'barcode-data') {
+        window.location.href = `?barcode_data=${event.data.data}`;
+      }
+    });
   </script>
 </body>
 </html>
 '''
 
 # Display the barcode scanner within the Streamlit app
-st.components.v1.html(html_code, height=500, scrolling=True)
+components.html(html_code, height=500, scrolling=True)
 
-# Handle barcode data received from the scanner or manually entered
-barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
+# Retrieve barcode data from URL parameters
+query_params = urllib.parse.parse_qs(urllib.parse.urlsplit(st.experimental_get_query_params().get('barcode_data', '')).query)
+barcode_data = query_params.get('barcode_data', [''])[0]
 
 if barcode_data:
     ingredients_list = fetch_ingredients_from_barcode(barcode_data)
