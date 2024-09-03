@@ -8,22 +8,16 @@ ingredient_data = pd.read_csv('Book1.csv')
 
 def calculate_health_score(ingredient_list, data_frame):
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
-    total_score = 0
+    total_score = sum(ingredient_scores.get(ingredient, 1) for ingredient in ingredient_list)
     
-    for ingredient in ingredient_list:
-        score = ingredient_scores.get(ingredient, 1)  # Default to 1 if ingredient is not found
-        total_score += score
-    
-    if len(ingredient_list) > 0:
-        normalized_score = (total_score / (len(ingredient_list)*5)) # Adjusted for a 0-100 scale
+    if ingredient_list:
+        normalized_score = (total_score / (len(ingredient_list) * 5))  # Adjusted for a 0-100 scale
     else:
         normalized_score = 0  # Base positive score if no ingredients are provided
 
-    final_score = normalized_score + 0  # Add base value to ensure positive scores
-    
-    return max(0, min(100, final_score))  # Ensure score is within 0-100 range
+    return max(0, min(100, normalized_score))  # Ensure score is within 0-100 range
 
-# Embed the barcode scanner HTML with adjusted blue line animation
+# Embed the barcode scanner HTML
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -88,15 +82,7 @@ html_code = '''
 
     Quagga.onDetected(function(data) {
       const barcode = data.codeResult.code;
-      document.getElementById('result').innerText = `Barcode Data: ${barcode}`;
       window.parent.postMessage({ type: 'barcode-data', data: barcode }, '*');
-    });
-
-    window.addEventListener('message', function(event) {
-      if (event.data.type === 'barcode-data') {
-        document.getElementById('result').innerText = `Barcode Data: ${event.data.data}`;
-        window.parent.postMessage({ type: 'barcode-data', data: event.data.data }, '*');
-      }
     });
   </script>
 </body>
@@ -107,20 +93,12 @@ html_code = '''
 st.components.v1.html(html_code, height=600, scrolling=True)
 
 # Handle barcode data received from the scanner
-def get_barcode_data():
-    # The barcode data is expected to be sent from the HTML script via postMessage
-    # This function would handle retrieving and processing that data
-    # For simplicity, we're using a placeholder here
-    return st.session_state.get('barcode_data', '')
-
-# Manual input for barcode data as a backup
-barcode_data = st.text_input("Enter barcode data (comma-separated ingredients):", value=get_barcode_data())
+barcode_data = st.text_input("Enter barcode data (comma-separated ingredients):")
 
 if barcode_data:
     ingredient_list = barcode_data.split(',')
     health_score = calculate_health_score(ingredient_list, ingredient_data)
     st.write(f"Health Score: {health_score}")
 
-# Update session state with barcode data if available
-if 'barcode_data' not in st.session_state:
-    st.session_state['barcode_data'] = barcode_data
+# Store barcode data in session state
+st.session_state['barcode_data'] = barcode_data
