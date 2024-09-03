@@ -43,12 +43,13 @@ html_code = '''
     }
     .scanner-line {
       position: absolute;
-      top: 50%;
+      top: 0;
       left: 0;
       width: 100%;
-      height: 2px;
+      height: 4px;
       background: rgba(0, 0, 255, 0.7);
       animation: move 1s linear infinite;
+      pointer-events: none; /* Make sure the line does not interfere with interactions */
     }
     @keyframes move {
       0% { top: 0; }
