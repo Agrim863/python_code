@@ -30,59 +30,64 @@ def fetch_ingredients_from_barcode(barcode):
             return ingredients.split(', ')  # Return a list of ingredients
     return []
 
-# Embed the barcode scanner HTML using ZXing-JS
+# Embed the barcode scanner HTML using jsQR without any extra animation
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZXing Barcode Scanner</title>
-  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <title>jsQR Barcode Scanner</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
   <style>
-    #scanner-container {
-      position: relative;
+    #video {
       width: 100%;
       height: 400px;
       border: 1px solid black;
     }
-    video {
-      width: 100%;
-      height: 100%;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 1.2em;
-    }
   </style>
 </head>
 <body>
-  <div id="scanner-container">
-    <video id="video"></video>
-  </div>
+  <video id="video" autoplay></video>
+  <canvas id="canvas" style="display:none;"></canvas>
   <div id="result">Scan a barcode to see the result here.</div>
 
   <script>
-    const codeReader = new ZXing.BrowserBarcodeReader();
-    const videoElement = document.getElementById('video');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
     const resultElement = document.getElementById('result');
+    const ctx = canvas.getContext('2d');
 
-    codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
-      if (result) {
-        resultElement.textContent = `Barcode Data: ${result.text}`;
-        window.parent.postMessage({ type: 'barcode-data', data: result.text }, '*');
-      }
-      if (err && !(err instanceof ZXing.NotFoundException)) {
-        console.error(err);
-      }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
+      video.srcObject = stream;
+      video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+      video.play();
+      requestAnimationFrame(tick);
     });
+
+    function tick() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: "dontInvert",
+        });
+        if (code) {
+          resultElement.innerText = `Barcode Data: ${code.data}`;
+          window.parent.postMessage({ type: 'barcode-data', data: code.data }, '*');
+        }
+      }
+      requestAnimationFrame(tick);
+    }
   </script>
 </body>
 </html>
 '''
 
 # Display the barcode scanner within the Streamlit app
-st.components.v1.html(html_code, height=300, scrolling=True)
+st.components.v1.html(html_code, height=600, scrolling=True)
 
 # Handle barcode data received from the scanner or manually entered
 barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
