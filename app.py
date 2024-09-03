@@ -11,10 +11,16 @@ def calculate_health_score(ingredient_list, data_frame):
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
     total_score = 0
     for ingredient in ingredient_list:
-        score = ingredient_scores.get(ingredient, 0)
+        score = ingredient_scores.get(ingredient, 1)  # Default to 1 if ingredient is not found
         total_score += score
-    normalized_score = (total_score / len(ingredient_list)*5)*100
-    return normalized_score
+    
+    # Avoid division by zero and set up a normalization mechanism
+    if len(ingredient_list) > 0:
+        normalized_score = (total_score / len(ingredient_list)) * 20  # Assuming a 0-100 scale
+    else:
+        normalized_score = 0  # Default score if no ingredients are provided
+
+    return max(0, min(100, normalized_score))  # Ensure score is within 0-100 range
 
 def extract_ingredients_from_qr_code(qr_code_data):
     ingredient_list = [ingredient.strip() for ingredient in qr_code_data.split(',')]
