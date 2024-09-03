@@ -9,6 +9,7 @@ ingredient_data = pd.read_csv('Book1.csv')
 def calculate_health_score(ingredient_list, data_frame):
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
     total_score = 0
+    
     for ingredient in ingredient_list:
         score = ingredient_scores.get(ingredient, 1)  # Default to 1 if ingredient is not found
         total_score += score
@@ -16,9 +17,11 @@ def calculate_health_score(ingredient_list, data_frame):
     if len(ingredient_list) > 0:
         normalized_score = (total_score / len(ingredient_list)) * 20  # Adjusted for a 0-100 scale
     else:
-        normalized_score = 0  # Default score if no ingredients are provided
+        normalized_score = 10  # Base positive score if no ingredients are provided
 
-    return max(0, min(100, normalized_score))  # Ensure score is within 0-100 range
+    final_score = normalized_score + 10  # Add base value to ensure positive scores
+    
+    return max(0, min(100, final_score))  # Ensure score is within 0-100 range
 
 # Embed the QR code scanner HTML
 html_code = '''
