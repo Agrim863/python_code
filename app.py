@@ -15,7 +15,7 @@ def calculate_health_score(ingredient_list, data_frame):
         total_score += score
     
     if len(ingredient_list) > 0:
-        normalized_score = (total_score / len(ingredient_list)) * 20  # Adjusted for a 0-100 scale
+        normalized_score = (total_score / len(ingredient_list)*5)  # Adjusted for a 0-100 scale
     else:
         normalized_score = 10  # Base positive score if no ingredients are provided
 
