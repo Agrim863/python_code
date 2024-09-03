@@ -32,7 +32,7 @@ def fetch_ingredients_from_barcode(barcode):
             return ingredients.split(', ')  # Return a list of ingredients
     return []
 
-# Embed the barcode scanner HTML using jsQR with optimizations
+# Embed the barcode scanner HTML using jsQR with improved performance
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
