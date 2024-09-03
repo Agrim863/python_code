@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 st.title("Health Scorer with Barcode Scanner")
 
@@ -8,7 +9,7 @@ ingredient_data = pd.read_csv('Book1.csv')
 
 def calculate_health_score(ingredient_list, data_frame):
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
-    total_score = sum(ingredient_scores.get(ingredient, 1) for ingredient in ingredient_list)
+    total_score = sum(ingredient_scores.get(ingredient.lower(), 1) for ingredient in ingredient_list)
     
     if ingredient_list:
         normalized_score = (total_score / (len(ingredient_list) * 5))  # Adjusted for a 0-100 scale
@@ -17,72 +18,63 @@ def calculate_health_score(ingredient_list, data_frame):
 
     return max(0, min(100, normalized_score))  # Ensure score is within 0-100 range
 
-# Embed the barcode scanner HTML
+def fetch_ingredients_from_barcode(barcode):
+    """Fetch ingredients from Open Food Facts API using barcode"""
+    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        product_data = response.json()
+        if 'product' in product_data and 'ingredients_text' in product_data['product']:
+            ingredients = product_data['product']['ingredients_text']
+            return ingredients.split(', ')  # Return a list of ingredients
+    return []
+
+# Embed the barcode scanner HTML using ZXing-JS
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Barcode Scanner with QuaggaJS</title>
-  <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
+  <title>ZXing Barcode Scanner</title>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
   <style>
     #scanner-container {
       position: relative;
-    }
-    #scanner {
       width: 100%;
       height: 400px;
       border: 1px solid black;
     }
-    .scanner-line {
-      position: absolute;
-      top: 0;
-      left: 0;
+    video {
       width: 100%;
-      height: 4px;
-      background: rgba(0, 0, 255, 0.7);
-      animation: move 4s linear infinite;
+      height: 100%;
     }
-    @keyframes move {
-      0% { top: 0; }
-      50% { top: 100%; }
-      100% { top: 0; }
+    #result {
+      margin-top: 20px;
+      font-size: 1.2em;
     }
   </style>
 </head>
 <body>
-  <h1>Barcode Scanner with QuaggaJS</h1>
   <div id="scanner-container">
-    <video id="scanner"></video>
-    <div class="scanner-line"></div>
+    <video id="video"></video>
   </div>
   <div id="result">Scan a barcode to see the result here.</div>
-  <script>
-    Quagga.init({
-      inputStream: {
-        type: "LiveStream",
-        target: document.querySelector('#scanner'),
-        constraints: {
-          facingMode: "environment",
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        }
-      },
-      decoder: {
-        readers: ["code_128_reader", "ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"]
-      }
-    }, function(err) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      Quagga.start();
-    });
 
-    Quagga.onDetected(function(data) {
-      const barcode = data.codeResult.code;
-      window.parent.postMessage({ type: 'barcode-data', data: barcode }, '*');
+  <script>
+    const codeReader = new ZXing.BrowserBarcodeReader();
+    const videoElement = document.getElementById('video');
+    const resultElement = document.getElementById('result');
+
+    codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
+      if (result) {
+        resultElement.textContent = `Barcode Data: ${result.text}`;
+        window.parent.postMessage({ type: 'barcode-data', data: result.text }, '*');
+      }
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error(err);
+      }
     });
   </script>
 </body>
@@ -90,15 +82,16 @@ html_code = '''
 '''
 
 # Display the barcode scanner within the Streamlit app
-st.components.v1.html(html_code, height=600, scrolling=True)
+st.components.v1.html(html_code, height=300, scrolling=True)
 
-# Handle barcode data received from the scanner
-barcode_data = st.text_input("Enter barcode data (comma-separated ingredients):")
+# Handle barcode data received from the scanner or manually entered
+barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
 
 if barcode_data:
-    ingredient_list = barcode_data.split(',')
-    health_score = calculate_health_score(ingredient_list, ingredient_data)
-    st.write(f"Health Score: {health_score}")
-
-# Store barcode data in session state
-st.session_state['barcode_data'] = barcode_data
+    ingredients_list = fetch_ingredients_from_barcode(barcode_data)
+    if ingredients_list:
+        health_score = calculate_health_score(ingredients_list, ingredient_data)
+        st.write(f"Health Score: {health_score}")
+        st.write(f"Ingredients: {', '.join(ingredients_list)}")
+    else:
+        st.write("Unable to fetch ingredients for this barcode.")
