@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 
-st.title("Health Scorer with Barcode Scanner")
+st.title("Enhanced Health Scorer with Barcode Scanner")
 
 # Load ingredient data
 ingredient_data = pd.read_csv('Book1.csv')
@@ -41,38 +41,89 @@ def get_ingredients_by_barcode(barcode):
         st.error(f"Error: Unable to fetch data (Status code: {response.status_code})")
         return None
 
-# Embed the barcode scanner using ZXing
+# Enhanced ZXing barcode scanner with auto-focus, torch, and optimized format
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZXing Barcode Scanner</title>
+  <title>Enhanced ZXing Barcode Scanner</title>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <style>
+    #video {
+      width: 100%;
+      height: 400px;
+      border: 1px solid black;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <h1>Barcode Scanner with ZXing</h1>
-  <video id="video" width="100%" height="400" style="border: 1px solid black;"></video>
+  <video id="video"></video>
+  <div class="controls">
+    <button id="torch-toggle">Toggle Torch</button>
+    <button id="restart-scanner">Restart Scanner</button>
+  </div>
   <div id="result">Scan a barcode to see the result here.</div>
 
   <script>
+    let selectedDeviceId;
     const codeReader = new ZXing.BrowserMultiFormatReader();
-    codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
-      if (result) {
-        console.log(result.text);
-        window.parent.postMessage({ type: 'barcode-data', data: result.text }, '*');
+    const videoElement = document.getElementById('video');
+    let torchEnabled = false;
+
+    // Get camera devices and start the scanner
+    codeReader.listVideoInputDevices().then(videoInputDevices => {
+      // Use the first camera available
+      selectedDeviceId = videoInputDevices[0].deviceId;
+      startScanner();
+    }).catch(err => console.error(err));
+
+    function startScanner() {
+      codeReader.decodeFromVideoDevice(selectedDeviceId, 'video', (result, err) => {
+        if (result) {
+          console.log(result.text);
+          window.parent.postMessage({ type: 'barcode-data', data: result.text }, '*');
+          document.getElementById('result').textContent = `Scanned Barcode: ${result.text}`;
+        }
+        if (err && !(err instanceof ZXing.NotFoundException)) {
+          console.error(err);
+        }
+      });
+    }
+
+    // Toggle torch (flashlight)
+    document.getElementById('torch-toggle').addEventListener('click', () => {
+      const track = videoElement.srcObject.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+
+      if (capabilities.torch) {
+        torchEnabled = !torchEnabled;
+        track.applyConstraints({
+          advanced: [{ torch: torchEnabled }]
+        });
+      } else {
+        alert('Torch is not available on this device.');
       }
-      if (err && !(err instanceof ZXing.NotFoundException)) {
-        console.error(err);
-      }
+    });
+
+    // Restart scanner button
+    document.getElementById('restart-scanner').addEventListener('click', () => {
+      codeReader.reset();
+      startScanner();
     });
   </script>
 </body>
 </html>
 '''
 
-# Display the barcode scanner within the Streamlit app
+# Display the enhanced barcode scanner within the Streamlit app
 st.components.v1.html(html_code, height=600, scrolling=True)
 
 # Handle barcode data received from the scanner
