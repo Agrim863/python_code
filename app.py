@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import streamlit.components.v1 as components
-import urllib.parse
 
 st.title("Health Scorer with Barcode Scanner")
 
@@ -11,7 +9,7 @@ ingredient_data = pd.read_csv('Book1.csv')
 
 def calculate_health_score(ingredient_list, data_frame):
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
-    total_score = sum(ingredient_scores.get(ingredient.lower(), 1) for ingredient in ingredient_list)
+    total_score = sum(ingredient_scores.get(ingredient, 1) for ingredient in ingredient_list)
     
     if ingredient_list:
         normalized_score = (total_score / (len(ingredient_list) * 5))  # Adjusted for a 0-100 scale
@@ -20,80 +18,53 @@ def calculate_health_score(ingredient_list, data_frame):
 
     return max(0, min(100, normalized_score))  # Ensure score is within 0-100 range
 
-def fetch_ingredients_from_barcode(barcode):
-    """Fetch ingredients from Open Food Facts API using barcode"""
+def get_ingredients_by_barcode(barcode):
+    # Open Food Facts API URL
     url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+    
+    # Send a GET request to the API
     response = requests.get(url)
     
+    # Check if the response is successful
     if response.status_code == 200:
         product_data = response.json()
-        if 'product' in product_data and 'ingredients_text' in product_data['product']:
-            ingredients = product_data['product']['ingredients_text']
-            return ingredients.split(', ')  # Return a list of ingredients
-    return []
+        
+        # Check if the product exists in the database
+        if product_data.get("status") == 1:
+            product = product_data.get("product", {})
+            ingredients = product.get("ingredients_text", "Ingredients not available")
+            return ingredients
+        else:
+            st.error("Product not found in the database.")
+            return None
+    else:
+        st.error(f"Error: Unable to fetch data (Status code: {response.status_code})")
+        return None
 
-# Embed the barcode scanner HTML using jsQR with improved performance
+# Embed the barcode scanner using ZXing
 html_code = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>jsQR Barcode Scanner</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; }
-    #video { width: 100%; height: 60vh; border: 1px solid black; }
-    #canvas { display: none; }
-    #instructions { margin: 10px 0; font-size: 16px; color: #333; }
-    #result { margin-top: 10px; font-size: 18px; color: green; }
-  </style>
+  <title>ZXing Barcode Scanner</title>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 <body>
-  <div id="instructions">Point your camera at a barcode. Ensure it's well-lit and within the frame.</div>
-  <video id="video" autoplay></video>
-  <canvas id="canvas"></canvas>
-  <div id="result">Waiting for barcode...</div>
+  <h1>Barcode Scanner with ZXing</h1>
+  <video id="video" width="100%" height="400" style="border: 1px solid black;"></video>
+  <div id="result">Scan a barcode to see the result here.</div>
 
   <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const resultElement = document.getElementById('result');
-    const ctx = canvas.getContext('2d');
-    let lastCode = '';
-    const scanningInterval = 50;  // Scan every 50ms for quicker response
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
-      video.srcObject = stream;
-      video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
-      video.play();
-      requestAnimationFrame(tick);
-    }).catch(err => {
-      resultElement.innerText = 'Error accessing camera: ' + err.message;
-    });
-
-    function tick() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: "dontInvert",
-        });
-        if (code && code.data !== lastCode) {
-          lastCode = code.data;
-          resultElement.innerText = `Barcode Data: ${code.data}`;
-          window.parent.postMessage({ type: 'barcode-data', data: code.data }, '*');
-        }
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+      if (result) {
+        console.log(result.text);
+        window.parent.postMessage({ type: 'barcode-data', data: result.text }, '*');
       }
-      setTimeout(() => requestAnimationFrame(tick), scanningInterval);
-    }
-
-    window.addEventListener('message', function(event) {
-      if (event.data.type === 'barcode-data') {
-        const barcodeData = event.data.data;
-        window.location.search = `?barcode_data=${encodeURIComponent(barcodeData)}`;
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error(err);
       }
     });
   </script>
@@ -102,23 +73,19 @@ html_code = '''
 '''
 
 # Display the barcode scanner within the Streamlit app
-components.html(html_code, height=500, scrolling=True)
+st.components.v1.html(html_code, height=600, scrolling=True)
 
-# Text input for manual barcode entry
-barcode_data = st.text_input("Enter barcode data (or scan to auto-fill):")
+# Handle barcode data received from the scanner
+barcode_data = st.text_input("Scanned barcode data:")
 
-# Check URL parameters for barcode data
-query_params = urllib.parse.parse_qs(urllib.parse.urlsplit(st.experimental_get_query_params().get('barcode_data', '')).query)
-barcode_data_from_scan = query_params.get('barcode_data', [''])[0]
-
-# Use scanned barcode data if available, otherwise use manually entered data
-final_barcode_data = barcode_data_from_scan or barcode_data
-
-if final_barcode_data:
-    ingredients_list = fetch_ingredients_from_barcode(final_barcode_data)
-    if ingredients_list:
-        health_score = calculate_health_score(ingredients_list, ingredient_data)
+if barcode_data:
+    # Fetch ingredients using the Open Food Facts API
+    ingredients_text = get_ingredients_by_barcode(barcode_data)
+    
+    if ingredients_text:
+        ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
+        health_score = calculate_health_score(ingredient_list, ingredient_data)
         st.write(f"Health Score: {health_score}")
-        st.write(f"Ingredients: {', '.join(ingredients_list)}")
-    else:
-        st.write("Unable to fetch ingredients for this barcode.")
+
+# Store barcode data in session state
+st.session_state['barcode_data'] = barcode_data
