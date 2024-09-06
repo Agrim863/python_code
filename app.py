@@ -15,14 +15,23 @@ def calculate_health_score(ingredient_list, data_frame):
     # Create a dictionary of ingredient scores from the data frame
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
     
+    # Debugging: Show ingredient scores
+    st.write(f"Ingredient Scores: {ingredient_scores}")
+
     # Convert all ingredients in the list to lowercase
     ingredient_list = [ingredient.lower() for ingredient in ingredient_list]
 
     # Calculate the actual sum of the scores for the ingredients in the list
     actual_score = sum(ingredient_scores.get(ingredient, 0) for ingredient in ingredient_list)
+    
+    # Debugging: Show actual score
+    st.write(f"Actual Score: {actual_score}")
 
     # The maximum possible score is the number of ingredients * 5
     max_possible_score = len(ingredient_list) * 5
+    
+    # Debugging: Show max possible score
+    st.write(f"Max Possible Score: {max_possible_score}")
 
     # Calculate the normalized health score on a 0-100 scale
     if max_possible_score > 0:
