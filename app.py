@@ -141,9 +141,20 @@ if barcode_data:
     ingredients_text = get_ingredients_by_barcode(barcode_data)
     
     if ingredients_text:
+        st.write(f"Ingredients from barcode: {ingredients_text}")
         ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
         health_score = calculate_health_score(ingredient_list, ingredient_data)
         st.write(f"Health Score: {health_score}")
+    else:
+        st.error("Ingredients not found, please enter them manually.")
+
+# Allow manual ingredient input if the API fails to retrieve ingredients
+manual_ingredients = st.text_area("Enter ingredients manually (comma-separated):")
+
+if manual_ingredients:
+    ingredient_list = [ingredient.strip() for ingredient in manual_ingredients.split(',')]
+    health_score = calculate_health_score(ingredient_list, ingredient_data)
+    st.write(f"Health Score: {health_score}")
 
 # Store barcode data in session state
 st.session_state['barcode_data'] = barcode_data
