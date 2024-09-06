@@ -4,19 +4,26 @@ import requests
 
 st.title("Enhanced Health Scorer with Barcode Scanner")
 
-# Load ingredient data
+# Load ingredient data and normalize case
 ingredient_data = pd.read_csv('Book1.csv')
+ingredient_data['ingredient'] = ingredient_data['ingredient'].str.lower()
 
 def calculate_health_score(ingredient_list, data_frame):
+    # Normalize case for the data frame
+    data_frame['ingredient'] = data_frame['ingredient'].str.lower()
+    
     # Create a dictionary of ingredient scores from the data frame
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
+    
+    # Convert all ingredients in the list to lowercase
+    ingredient_list = [ingredient.lower() for ingredient in ingredient_list]
 
     # Calculate the actual sum of the scores for the ingredients in the list
     actual_score = sum(ingredient_scores.get(ingredient, 0) for ingredient in ingredient_list)
-    
+
     # The maximum possible score is the number of ingredients * 5
     max_possible_score = len(ingredient_list) * 5
-    
+
     # Calculate the normalized health score on a 0-100 scale
     if max_possible_score > 0:
         health_score = (actual_score / max_possible_score) * 100
