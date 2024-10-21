@@ -11,7 +11,7 @@ def calculate_health_score(ingredient_list, data_frame):
     data_frame['ingredient'] = data_frame['ingredient'].str.lower()
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
     actual_score = sum(ingredient_scores.get(ingredient, 0) for ingredient in ingredient_list)
-    max_possible_score = len(ingredient_list) * 5
+    max_possible_score = len(ingredient_list) * 3
 
     if max_possible_score > 0:
         health_score = (actual_score / max_possible_score) * 100
