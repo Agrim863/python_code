@@ -6,12 +6,12 @@ import requests
 ingredient_data = pd.read_csv('Book1.csv')
 ingredient_data['ingredient'] = ingredient_data['ingredient'].str.lower()
 
-# Define a function to calculate health score
+# Function to calculate health score
 def calculate_health_score(ingredient_list, data_frame):
     data_frame['ingredient'] = data_frame['ingredient'].str.lower()
     ingredient_scores = pd.Series(data_frame.score.values, index=data_frame.ingredient).to_dict()
     actual_score = sum(ingredient_scores.get(ingredient, 0) for ingredient in ingredient_list)
-    max_possible_score = len(ingredient_list) * 3
+    max_possible_score = len(ingredient_list) * 5
 
     if max_possible_score > 0:
         health_score = (actual_score / max_possible_score) * 100
@@ -145,7 +145,26 @@ else:
             st.write(f"Ingredients: {ingredients_text}")
             ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
             health_score = calculate_health_score(ingredient_list, ingredient_data)
+
+            # Determine category and set background color
+            if health_score >= 71:
+                category = "Healthy"
+                color = "green"
+            elif health_score >= 46:
+                category = "Neutral"
+                color = "yellow"
+            elif health_score >= 21:
+                category = "Unhealthy"
+                color = "orange"
+            else:
+                category = "Slow Poison"
+                color = "red"
+
+            # Set the background color based on the category
+            st.markdown(f"<div style='background-color: {color}; padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
+            st.markdown(f"**Category: {category}**", unsafe_allow_html=True)
             st.write(f"Health Score: {health_score}")
+            st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.error("Ingredients not found.")
 
