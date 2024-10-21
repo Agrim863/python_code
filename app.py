@@ -20,8 +20,8 @@ def calculate_health_score(ingredient_list, data_frame):
 
     return max(0, min(100, health_score))
 
-# Function to get ingredients by barcode
-def get_ingredients_by_barcode(barcode):
+# Function to get product details by barcode
+def get_product_details_by_barcode(barcode):
     url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
     response = requests.get(url)
     
@@ -29,14 +29,16 @@ def get_ingredients_by_barcode(barcode):
         product_data = response.json()
         if product_data.get("status") == 1:
             product = product_data.get("product", {})
+            name = product.get("product_name", "Product name not available")
             ingredients = product.get("ingredients_text", "Ingredients not available")
-            return ingredients
+            image_url = product.get("image_url", "")
+            return name, ingredients, image_url
         else:
             st.error("Product not found in the database.")
-            return None
+            return None, None, None
     else:
         st.error(f"Error: Unable to fetch data (Status code: {response.status_code})")
-        return None
+        return None, None, None
 
 # UI Components
 if 'user_name' not in st.session_state:
@@ -49,6 +51,7 @@ if 'user_name' not in st.session_state:
             st.experimental_rerun()  # Restart the app to show barcode scanner
 else:
     st.title(f"Welcome, {st.session_state.user_name}!")
+    st.subheader("Scan to see what you're actually eating!")
     
     # Barcode Scanner Code
     html_code = '''
@@ -134,22 +137,17 @@ else:
     barcode_data = st.text_input("Scanned barcode data:")
 
     if barcode_data:
-        ingredients_text = get_ingredients_by_barcode(barcode_data)
+        product_name, ingredients_text, image_url = get_product_details_by_barcode(barcode_data)
+        
         if ingredients_text:
-            st.write(f"Ingredients from barcode: {ingredients_text}")
+            st.image(image_url, width=200)  # Display product image
+            st.write(f"Product Name: {product_name}")
+            st.write(f"Ingredients: {ingredients_text}")
             ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
             health_score = calculate_health_score(ingredient_list, ingredient_data)
             st.write(f"Health Score: {health_score}")
         else:
-            st.error("Ingredients not found, please enter them manually.")
-
-    # Manual ingredient input
-    manual_ingredients = st.text_area("Enter ingredients manually (comma-separated):")
-
-    if manual_ingredients:
-        ingredient_list = [ingredient.strip() for ingredient in manual_ingredients.split(',')]
-        health_score = calculate_health_score(ingredient_list, ingredient_data)
-        st.write(f"Health Score: {health_score}")
+            st.error("Ingredients not found.")
 
     # Store barcode data in session state
     st.session_state['barcode_data'] = barcode_data
