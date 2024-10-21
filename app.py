@@ -43,7 +43,7 @@ def get_product_details_by_barcode(barcode):
 # UI Components
 if 'user_name' not in st.session_state:
     st.title("Health Scorer App")
-    st.image('assets/logo.png', width=200)  # Make sure the logo is in the assets folder
+    st.image('logo.png', width=200)  # Make sure the logo is in the assets folder
     if st.button("Start"):
         name = st.text_input("What's your Name?")
         if name:
