@@ -143,37 +143,4 @@ else:
     barcode_data = st.text_input("Scanned barcode data:", value=st.session_state.barcode_data)
 
     if barcode_data:
-        product_name, ingredients_text, image_url = get_product_details_by_barcode(barcode_data)
-        
-        if ingredients_text:
-            st.image(image_url, width=200)  # Display product image
-            st.write(f"Product Name: {product_name}")
-            st.write(f"Ingredients: {ingredients_text}")
-            ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
-            health_score = calculate_health_score(ingredient_list, ingredient_data)
-
-            # Determine category and set background color
-            if health_score >= 71:
-                category = "Healthy"
-                color = "green"
-            elif health_score >= 46:
-                category = "Neutral"
-                color = "yellow"
-            elif health_score >= 21:
-                category = "Unhealthy"
-                color = "orange"
-            else:
-                category = "Slow Poison"
-                color = "red"
-
-            # Set the background color based on the category
-            st.markdown(f"<div style='background-color: {color}; padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
-            st.markdown(f"**Category: {category}**", unsafe_allow_html=True)
-            st.write(f"Health Score: {health_score:.2f}")  # Show score with two decimal places
-            st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.error("Ingredients not found.")
-
-    # Store barcode data in session state
-    if barcode_data:
-        st.session_state.barcode_data = barcode_data
+        product_name, ingredients_text, image_url = get_product_details_by_barcode(barcode_
