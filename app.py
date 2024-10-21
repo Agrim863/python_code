@@ -40,18 +40,23 @@ def get_product_details_by_barcode(barcode):
         st.error(f"Error: Unable to fetch data (Status code: {response.status_code})")
         return None, None, None
 
-# UI Components
+# Initialize session state
 if 'user_name' not in st.session_state:
+    st.session_state.user_name = None
+    st.session_state.barcode_data = None
+
+# UI Components
+if st.session_state.user_name is None:
     st.title("Health Scorer App")
     st.image('logo.png', width=300)  # Increased logo size
     st.markdown("<h1 style='text-align: center;'>Welcome to Health Scorer!</h1>", unsafe_allow_html=True)  # Centered title
-    if st.button("Start"):
-        name = st.text_input("What's your Name?")
-        if name:
-            st.session_state.user_name = name
-            st.experimental_rerun()  # Restart the app to show barcode scanner
+
+    name = st.text_input("What's your Name?")
+    if st.button("Start") and name:
+        st.session_state.user_name = name
+        st.experimental_rerun()  # Restart the app to show barcode scanner
 else:
-    st.markdown("<h1 style='text-align: center;'>Welcome, {st.session_state.user_name}!</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align: center;'>Welcome, {st.session_state.user_name}!</h1>", unsafe_allow_html=True)
     st.subheader("Scan to see what you're actually eating!")
     
     # Barcode Scanner Code
@@ -135,7 +140,7 @@ else:
     st.components.v1.html(html_code, height=600, scrolling=True)
 
     # Handle barcode data
-    barcode_data = st.text_input("Scanned barcode data:")
+    barcode_data = st.text_input("Scanned barcode data:", value=st.session_state.barcode_data)
 
     if barcode_data:
         product_name, ingredients_text, image_url = get_product_details_by_barcode(barcode_data)
@@ -170,4 +175,5 @@ else:
             st.error("Ingredients not found.")
 
     # Store barcode data in session state
-    st.session_state['barcode_data'] = barcode_data
+    if barcode_data:
+        st.session_state.barcode_data = barcode_data
