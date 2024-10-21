@@ -43,14 +43,15 @@ def get_product_details_by_barcode(barcode):
 # UI Components
 if 'user_name' not in st.session_state:
     st.title("Health Scorer App")
-    st.image('logo.png', width=200)  # Make sure the logo is in the assets folder
+    st.image('logo.png', width=300)  # Increased logo size
+    st.markdown("<h1 style='text-align: center;'>Welcome to Health Scorer!</h1>", unsafe_allow_html=True)  # Centered title
     if st.button("Start"):
         name = st.text_input("What's your Name?")
         if name:
             st.session_state.user_name = name
             st.experimental_rerun()  # Restart the app to show barcode scanner
 else:
-    st.title(f"Welcome, {st.session_state.user_name}!")
+    st.markdown("<h1 style='text-align: center;'>Welcome, {st.session_state.user_name}!</h1>", unsafe_allow_html=True)
     st.subheader("Scan to see what you're actually eating!")
     
     # Barcode Scanner Code
@@ -163,7 +164,7 @@ else:
             # Set the background color based on the category
             st.markdown(f"<div style='background-color: {color}; padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
             st.markdown(f"**Category: {category}**", unsafe_allow_html=True)
-            st.write(f"Health Score: {health_score}")
+            st.write(f"Health Score: {health_score:.2f}")  # Show score with two decimal places
             st.markdown("</div>", unsafe_allow_html=True)
         else:
             st.error("Ingredients not found.")
