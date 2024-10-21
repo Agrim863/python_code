@@ -49,16 +49,16 @@ if 'user_name' not in st.session_state:
 if st.session_state.user_name is None:
     st.title("Health Scorer App")
     st.image('logo.png', width=300)  # Increased logo size
-    st.markdown("<h1 style='text-align: center;'>Welcome to Health Scorer!</h1>", unsafe_allow_html=True)  # Centered title
+    st.markdown("<h1 style='text-align: center;'>Welcome to Health Scorer!</h1>", unsafe_allow_html=True)
 
     name = st.text_input("What's your Name?")
     if st.button("Start") and name:
         st.session_state.user_name = name
-        st.experimental_rerun()  # Restart the app to show barcode scanner
+        st.experimental_rerun()
 else:
     st.markdown(f"<h1 style='text-align: center;'>Welcome, {st.session_state.user_name}!</h1>", unsafe_allow_html=True)
     st.subheader("Scan to see what you're actually eating!")
-    
+
     # Barcode Scanner Code
     html_code = '''
     <!DOCTYPE html>
@@ -143,4 +143,45 @@ else:
     barcode_data = st.text_input("Scanned barcode data:", value=st.session_state.barcode_data)
 
     if barcode_data:
-        product_name, ingredients_text, image_url = get_product_details_by_barcode(barcode_
+        product_name, ingredients_text, image_url = get_product_details_by_barcode(barcode_data)
+        
+        if ingredients_text:
+            st.image(image_url, width=200)  # Display product image
+            st.write(f"Product Name: {product_name}")
+            st.write(f"Ingredients: {ingredients_text}")
+            ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
+            health_score = calculate_health_score(ingredient_list, ingredient_data)
+
+            # Determine category and set background color
+            if health_score >= 71:
+                category = "Healthy"
+                color = "green"
+            elif health_score >= 46:
+                category = "Neutral"
+                color = "yellow"
+            elif health_score >= 21:
+                category = "Unhealthy"
+                color = "orange"
+            else:
+                category = "Slow Poison"
+                color = "red"
+
+            # Set the entire background color based on the category
+            st.markdown(f"""
+            <style>
+                .stApp {{
+                    background-color: {color};
+                }}
+            </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown(f"<div style='padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
+            st.markdown(f"**Category: {category}**", unsafe_allow_html=True)
+            st.write(f"Health Score: {health_score:.2f}")  # Show score with two decimal places
+            st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.error("Ingredients not found.")
+
+    # Store barcode data in session state
+    if barcode_data:
+        st.session_state.barcode_data = barcode_data
