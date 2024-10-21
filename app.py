@@ -60,8 +60,6 @@ with col1:
         st.session_state.user_name = name
         st.experimental_rerun()
 
-with col2:
-    st.image('intro_image.png', width=200)  # Optional intro image
 
 # Main app logic
 if st.session_state.user_name:
