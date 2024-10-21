@@ -46,17 +46,26 @@ if 'user_name' not in st.session_state:
     st.session_state.barcode_data = None
 
 # UI Components
-if st.session_state.user_name is None:
-    st.title("Health Scorer App")
-    st.image('logo.png', width=300)  # Increased logo size
-    st.markdown("<h1 style='text-align: center;'>Welcome to Health Scorer!</h1>", unsafe_allow_html=True)
+st.title("Health Scorer App")
+st.image('logo.png', width=300)
 
-    name = st.text_input("What's your Name?")
+st.markdown("<h1 style='text-align: center;'>Welcome to Health Scorer!</h1>", unsafe_allow_html=True)
+
+# Use columns for layout
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    name = st.text_input("What's your Name:")
     if st.button("Start") and name:
         st.session_state.user_name = name
         st.experimental_rerun()
-else:
-    st.markdown(f"<h1 style='text-align: center;'>Welcome, {st.session_state.user_name}!</h1>", unsafe_allow_html=True)
+
+with col2:
+    st.image('intro_image.png', width=200)  # Optional intro image
+
+# Main app logic
+if st.session_state.user_name:
+    st.markdown(f"<h2 style='text-align: center;'>Welcome, {st.session_state.user_name}!</h2>", unsafe_allow_html=True)
     st.subheader("Scan to see what you're actually eating!")
 
     # Barcode Scanner Code
@@ -147,8 +156,11 @@ else:
         
         if ingredients_text:
             st.image(image_url, width=200)  # Display product image
-            st.write(f"Product Name: {product_name}")
-            st.write(f"Ingredients: {ingredients_text}")
+
+            with st.expander("Product Details", expanded=True):
+                st.write(f"**Product Name:** {product_name}")
+                st.write(f"**Ingredients:** {ingredients_text}")
+
             ingredient_list = [ingredient.strip() for ingredient in ingredients_text.split(',')]
             health_score = calculate_health_score(ingredient_list, ingredient_data)
 
@@ -175,13 +187,27 @@ else:
             </style>
             """, unsafe_allow_html=True)
 
-            st.markdown(f"<div style='padding: 20px; border-radius: 10px;'>", unsafe_allow_html=True)
-            st.markdown(f"**Category: {category}**", unsafe_allow_html=True)
-            st.write(f"Health Score: {health_score:.2f}")  # Show score with two decimal places
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('<div class="fade-in">', unsafe_allow_html=True)
+            st.markdown(f"<h3 style='text-align: center;'>**Category: {category}**</h3>", unsafe_allow_html=True)
+            st.write(f"**Health Score:** {health_score:.2f}")
+            st.markdown('</div>', unsafe_allow_html=True)
+
         else:
-            st.error("Ingredients not found.")
+            st.warning("Oops! We couldn't find the ingredients. Please try scanning again.")
 
     # Store barcode data in session state
     if barcode_data:
         st.session_state.barcode_data = barcode_data
+
+# Custom CSS for animations and styles
+st.markdown("""
+<style>
+.fade-in {
+    animation: fadeIn 0.5s;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
+""", unsafe_allow_html=True)
